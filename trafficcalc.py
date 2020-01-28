@@ -136,25 +136,28 @@ class Bot:
 
 	def run(self):
 		self.bot.start()
-		sqlObj = self.conn.query("SELECT * FROM `user_traffic_log` WHERE `log_time` > %s ORDER BY `log_time` DESC", datetime.datetime.combine(datetime.date.today(), datetime.datetime.min.time()).timestamp())
+		today = datetime.datetime.combine(datetime.date.today(), datetime.datetime.min.time())
+		if datetime.datetime.now() - today < datetime.timedelta(hours=8):
+			today = datetime.datetime.combine(datetime.datetime.today() - datetime.timedelta(hours=8), datetime.datetime.min.time())
+		sqlObj = self.conn.query("SELECT * FROM `user_traffic_log` WHERE `log_time` > %s ORDER BY `log_time` DESC", today.timestamp())
 		users = {}
 		for x in map(TrafficRecord, sqlObj):
 			if x.user_id in users:
 				users[x.user_id] += x.traffic
 			else:
 				users.update({x.user_id: x.traffic})
-		maxnum = -0x7ffffff
-		user = 0
-		for k, v in users.items():
-			if maxnum < v:
-				user = k
-				maxnum = v
-		#users = dict(sorted(users.items, key=operator.itemgetter(0), reverse=True))
-		#for x in users.items():
-		#	self.bot.send_message(self.channel, '{}, {}'.format(*x))
-		#	break
-		user = User(self.conn.query1("SELECT * FROM `user` WHERE `id` = %s", user))
-		self.bot.send_message(self.channel, '{}, {}, {}'.format(user.user_id, user.user_name, TrafficRecord.get_traffic_string(users.get(user.user_id))))
+		s = []
+		for _ in range(3):
+			maxnum = -0x7ffffff
+			user = 0
+			for k, v in users.items():
+				if maxnum < v:
+					user = k
+					maxnum = v
+			user = User(self.conn.query1("SELECT * FROM `user` WHERE `id` = %s", user))
+			s.append('{}, <code>{}</code>, {}'.format(user.user_id, user.user_name, TrafficRecord.get_traffic_string(users.get(user.user_id))))
+			users.pop(user.user_id)
+		self.bot.send_message(self.channel, '\n'.join(s), 'html')
 		self.bot.stop()
 
 if __name__ == "__main__":
