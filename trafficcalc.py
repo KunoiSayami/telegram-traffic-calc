@@ -17,13 +17,14 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
-from configparser import ConfigParser
 import datetime
 import string
+from configparser import ConfigParser
 
 from pyrogram import Client
 
 from libpy3.mysqldb import mysqldb
+
 
 class TrafficRecord:
 	def __init__(self, q: dict):
@@ -137,9 +138,10 @@ class Bot:
 	def run(self):
 		self.bot.start()
 		today = datetime.datetime.combine(datetime.date.today(), datetime.datetime.min.time())
-		if datetime.datetime.now() - today < datetime.timedelta(hours=8):
-			today = datetime.datetime.combine(datetime.datetime.today() - datetime.timedelta(hours=8), datetime.datetime.min.time())
-		sqlObj = self.conn.query("SELECT * FROM `user_traffic_log` WHERE `log_time` > %s ORDER BY `log_time` DESC", today.timestamp())
+		if datetime.datetime.now() - today < datetime.timedelta(hours=23, minutes=30):
+			today = datetime.datetime.combine(datetime.datetime.today() - datetime.timedelta(hours=23, minutes=30), datetime.datetime.min.time())
+		endday = today + datetime.timedelta(days=1)
+		sqlObj = self.conn.query("SELECT * FROM `user_traffic_log` WHERE `log_time` > %s AND `log_time` <= %s ORDER BY `log_time` DESC", (today.timestamp(), endday.timestamp()))
 		users = {}
 		for x in map(TrafficRecord, sqlObj):
 			if x.user_id in users:
